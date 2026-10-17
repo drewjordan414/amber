@@ -1,0 +1,8 @@
+# Pi (collector)
+picamera2  # install via apt on Raspberry Pi OS: sudo apt install python3-picamera2
+adafruit-circuitpython-seesaw
+adafruit-circuitpython-sht4x
+adafruit-circuitpython-tsl2591
+# Training machine
+torch
+torchvision
