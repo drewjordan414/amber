@@ -29,7 +29,7 @@ Stages: `seedling` → `veg` → `preflower` (the 2–3 week stretch after the f
 
 ## Hardware
 
-- Raspberry Pi + Pi camera module
+- Raspberry Pi 5 + Pi camera module
 - [Adafruit STEMMA soil sensor](https://www.adafruit.com/product/4026) (seesaw, I2C)
 - [Adafruit SHT4x](https://www.adafruit.com/product/4885): temperature and humidity
 - [Adafruit TSL2591](https://www.adafruit.com/product/1980): light
@@ -68,10 +68,37 @@ Run on a machine with a GPU or Apple Silicon, after copying `data/photos/` over 
 ```sh
 pip install torch torchvision
 python train.py --test   # self-check
-python train.py          # writes stage_model.pt
+python train.py                 # EfficientNet-B0 fine-tune, writes stage_model.pt
+python train.py --model dinov2  # frozen DINOv2 ViT-S/14 + linear head; compare val accuracy
 ```
 
+DINOv2 trains only a linear head on top of frozen features, so it's harder to overfit one grow's photos. Try it first when data is thin.
+
 Train and validation photos are split by day rather than at random. Hourly shots from the same day are near-duplicates, so a random split would make accuracy look far better than it is. The reported accuracy is averaged across stages, so a model that always guesses "flower" can't score well.
+
+## Public datasets
+
+```sh
+export ROBOFLOW_API_KEY=...   # free Roboflow account
+export KAGGLE_API_TOKEN=...   # Kaggle -> Settings -> API
+python fetch.py               # downloads to data/public/<task>/<dataset>/, skips what's already there
+```
+
+Then merge everything into one clean training folder per task and train each one:
+
+```sh
+python prepare.py                                                   # -> data/v1/<task>/<class>/
+python train.py --data data/v1/sex --model dinov2 --out sex_model.pt
+```
+
+| Task | Classes | Sources |
+|---|---|---|
+| `sex` | female, male, herm | Sex-Cannabis, cannabis-5jdhs, female-cannabis, Byron Wade |
+| `trichome` | clear, milky, amber | trichome colour detection |
+| `health` | healthy, N/P/K deficiency, yellowing, powdery mildew, rust, black rot, fusarium wilt, spider mite, aphid, whitefly, mealybug, caterpillar | 10-LMDC + four Roboflow sets |
+| `type` | indica, sativa, hybrid | Byron Wade |
+
+`prepare.py` keeps one image per source photo (Roboflow pads its exports with augmented copies) and turns each labeled box in the detection sets into its own cropped image, so every task trains as a plain classifier. Each dataset keeps a `SOURCE.txt` for CC BY attribution. 10-LMDC is CC BY-NC-SA, so it's for personal use only.
 
 ## Roadmap
 
